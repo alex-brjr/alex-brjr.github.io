@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import Guestbook from '../components/Guestbook.astro';
+import { getCollection } from 'astro:content';
+import { me, academy, readTime } from '../config';
+const posts = (await getCollection('blog')).sort((a, b) => +b.data.date - +a.data.date).slice(0, 3);
+---
+<Base>
+<section class="hero"><div class="av">AB</div><div><h1>{me.name}</h1><p>{me.tagline}</p><span id="status" class="tag">…</span></div></section>
+<p class="socials">{me.socials.filter((s) => !s.url.includes('TON-')).map((s) => <a class="card" href={s.url} target="_blank" rel="noopener">{s.icon} {s.label}</a>)}
+{!me.discord.startsWith('TON_') && <button class="card" id="dc" data-tag={me.discord}>💬 Discord (copier)</button>}</p>
+<section id="academy"><h2>The Academy & Lab</h2><div class="grid">
+{academy.map((a) => <a class="card" href={a.url} style="text-decoration:none;color:inherit"><h3>{a.title}</h3><p>{a.desc}</p>{a.tags.map((t) => <span class="tag">{t}</span>)}</a>)}</div></section>
+<section><h2>Journal & Transmissions</h2><div class="grid">
+{posts.map((p) => <a class="card" href={`/blog/${p.id}`} style="text-decoration:none;color:inherit"><h3>{p.data.title}</h3><small>{p.data.date.toLocaleDateString('fr-FR')} · {readTime(p.body)} min</small></a>)}</div></section>
+<Guestbook />
+<script>
+  const h = new Date().getHours();
+  document.getElementById('status')!.textContent = h < 7 ? '😴 En veille' : h < 12 ? '☕ Café + code' : h < 19 ? '🟢 En train de coder' : h < 23 ? '🎧 Chill & musique' : '🌙 Nuit blanche ?';
+  const dc = document.getElementById('dc');
+  if (dc) dc.onclick = () => { navigator.clipboard.writeText(dc.dataset.tag!); dc.textContent = '✅ Copié !'; setTimeout(() => (dc.textContent = '💬 Discord (copier)'), 1500); };
+</script>
+<style>
+  .hero{display:flex;gap:24px;align-items:center;flex-wrap:wrap}h1{margin:0;text-shadow:2px 0 var(--c2),-2px 0 var(--c1)}
+  .av{width:110px;height:110px;border-radius:50%;display:grid;place-items:center;font-size:34px;font-weight:700;background:#10131d;border:2px solid var(--c1);box-shadow:0 0 28px var(--c1),0 0 60px rgba(255,122,230,.35);animation:gl 4s infinite}
+  @keyframes gl{0%,92%,100%{transform:none}94%{transform:translate(3px,-2px)}96%{transform:translate(-3px,2px)}}
+  .socials{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}.socials .card{padding:8px 16px;border-radius:999px;color:var(--fg);text-decoration:none;font:inherit;cursor:pointer}
+</style>
+</Base>

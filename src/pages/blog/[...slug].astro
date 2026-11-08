@@ -1,0 +1,9 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+import { readTime } from '../../config';
+export async function getStaticPaths() { return (await getCollection('blog')).map((p) => ({ params: { slug: p.id }, props: { p } })); }
+const { p } = Astro.props; const { Content } = await render(p);
+---
+<Base title={p.data.title}><article class="prose"><h1>{p.data.title}</h1>
+<small>{p.data.date.toLocaleDateString('fr-FR')} · {readTime(p.body)} min de lecture</small><br />{p.data.tags.map((t) => <span class="tag">#{t}</span>)}<Content /></article></Base>

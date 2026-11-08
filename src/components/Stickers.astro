@@ -1,0 +1,32 @@
+<div id="tray"><button id="tg" title="Tiroir à stickers">🎒</button><div id="items">
+{['⭐','💾','📼','😎','👾','💿','🪩','🛸'].map((s) => <button class="stk" data-s={s}>{s}</button>)}</div></div>
+<div id="layer"></div>
+<script>
+  const layer = document.getElementById('layer')!;
+  type S = { s: string; x: number; y: number };
+  let list: S[] = JSON.parse(localStorage.getItem('stickers') || '[]');
+  const save = () => localStorage.setItem('stickers', JSON.stringify(list));
+  function add(o: S) {
+    const el = document.createElement('div'); el.className = 'placed'; el.textContent = o.s;
+    el.style.left = o.x + 'px'; el.style.top = o.y + 'px'; layer.append(el);
+    el.onpointerdown = (e) => {
+      e.preventDefault(); el.setPointerCapture(e.pointerId);
+      const dx = e.clientX - o.x, dy = e.clientY - o.y;
+      el.onpointermove = (m) => { o.x = m.clientX - dx; o.y = m.clientY - dy; el.style.left = o.x + 'px'; el.style.top = o.y + 'px'; };
+      el.onpointerup = () => { el.onpointermove = null; if (o.y > innerHeight - 70 || o.y < 0) { list = list.filter((i) => i !== o); el.remove(); } save(); };
+    };
+  }
+  list.forEach(add);
+  document.getElementById('tg')!.onclick = () => document.getElementById('items')!.classList.toggle('open');
+  document.querySelectorAll<HTMLElement>('.stk').forEach((b) => (b.onclick = () => {
+    const o = { s: b.dataset.s!, x: 80 + Math.random() * (innerWidth - 200), y: 140 + Math.random() * 200 };
+    list.push(o); add(o); save(); (window as any).blip?.(880);
+  }));
+</script>
+<style>
+  #tray{position:fixed;bottom:14px;right:14px;z-index:60;display:flex;align-items:center;gap:6px}
+  #tray button{font-size:24px;background:var(--glass);border:1px solid rgba(125,249,255,.3);border-radius:14px;padding:4px 8px;cursor:pointer;backdrop-filter:blur(10px)}
+  #items{display:none;gap:4px;background:var(--glass);padding:4px;border-radius:16px;backdrop-filter:blur(10px)}#items.open{display:flex;flex-wrap:wrap;max-width:60vw}
+  .placed{position:fixed;font-size:44px;cursor:grab;user-select:none;touch-action:none;z-index:40;filter:drop-shadow(0 0 8px rgba(255,122,230,.5))}
+  .placed:active{cursor:grabbing;transform:scale(1.15)}
+</style>

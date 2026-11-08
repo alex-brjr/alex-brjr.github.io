@@ -1,0 +1,33 @@
+<section id="guestbook"><h2>Chat & livre d'or</h2>
+<div class="card" id="gb-form"><div id="who"></div>
+<p><input id="pseudo" placeholder="Ton pseudo" maxlength="20"> <button class="btn" id="rnd" title="Pseudo aléatoire">🎲</button>
+<select id="av">{['👾','⭐','💾','📼','😎','🛸'].map((a) => <option>{a}</option>)}</select></p>
+<p><input id="msg" placeholder="Laisse un message…" maxlength="280" style="width:100%"></p>
+<button class="btn" id="send">Envoyer</button> <button class="btn" id="login" hidden>Connexion Google</button></div>
+<div id="list" style="margin-top:16px"></div></section>
+<script>
+  import { createClient } from '@supabase/supabase-js';
+  const url = import.meta.env.PUBLIC_SUPABASE_URL, key = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  const sb = url && key ? createClient(url, key) : null;
+  const $ = (i: string) => document.getElementById(i) as HTMLInputElement;
+  const pseudo = $('pseudo'); pseudo.value = localStorage.getItem('pseudo') || '';
+  $('rnd').onclick = () => { pseudo.value = ['Neo', 'Pixel', 'Byte', 'Nova', 'Glitch', 'Cyber'][Math.floor(Math.random() * 6)] + '_' + Math.floor(Math.random() * 999); };
+  type M = { pseudo: string; avatar: string; body: string; created_at: string };
+  const draw = (ms: M[]) => { const l = $('list'); l.replaceChildren(...ms.map((m) => { const d = document.createElement('div'); d.className = 'card'; d.style.marginBottom = '8px'; d.textContent = `${m.avatar} ${m.pseudo} — ${m.body}`; return d; })); };
+  async function load() {
+    if (!sb) return draw(JSON.parse(localStorage.getItem('gb') || '[]'));
+    const { data } = await sb.from('messages').select('*').order('created_at', { ascending: false }).limit(50); draw(data || []);
+  }
+  if (sb) { $('login').hidden = false; $('login').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
+    sb.auth.getUser().then(({ data }) => { if (data.user) { $('who').textContent = '✅ Connecté : ' + data.user.email; pseudo.value ||= data.user.email!.split('@')[0]; } });
+    sb.channel('m').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load).subscribe();
+  } else $('who').textContent = '⚠️ Mode démo local (Supabase non configuré) : les messages restent dans ton navigateur.';
+  $('send').onclick = async () => {
+    const body = $('msg').value.trim(), p = pseudo.value.trim() || 'Invité'; if (!body) return;
+    localStorage.setItem('pseudo', p); const avatar = $('av').value;
+    if (sb) { const { data } = await sb.auth.getUser(); await sb.from('messages').insert({ pseudo: p, avatar, body, user_id: data.user?.id ?? null }); }
+    else { const l = JSON.parse(localStorage.getItem('gb') || '[]'); l.unshift({ pseudo: p, avatar, body, created_at: new Date().toISOString() }); localStorage.setItem('gb', JSON.stringify(l)); }
+    $('msg').value = ''; load();
+  };
+  load();
+</script>
